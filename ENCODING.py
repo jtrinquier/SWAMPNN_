@@ -39,12 +39,4 @@ class ENCODING_KMEANS:
       h_V1 = jnp.einsum("nia,ja->nij",h_V1_,C)
       return h_V1,h_V1_
 
-def encoding(x1,node_features = 64,
-                 edge_features = 64, hidden_dim = 64,
-                 num_encoder_layers=3,
-                  k_neighbors=48,categorical = False,nb_clusters = 20):
-  if categorical:
-    a = ENCODING_KMEANS(node_features,edge_features,hidden_dim,num_encoder_layers,k_neighbors,nb_clusters = nb_clusters)
-  else:
-     a = ENCODING(node_features,edge_features,hidden_dim,num_encoder_layers,k_neighbors)
-  return a(x1)
+
