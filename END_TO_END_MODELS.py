@@ -116,19 +116,19 @@ class END_TO_END_SEQ_KMEANS:
             scores,soft_aln  = self.my_sw_func(sim_matrix, lens, popen[0],gap[0],t)
         else:
             scores,soft_aln  = self.my_sw_func(sim_matrix, lens, gap[0],t)
-        return soft_aln,sim_matrix,scores
+        return soft_aln,sim_matrix,scores,(h_V1_,h_V2_)
       
       else:
         if self.mixture == False:
             soft_aln = vmap(soft_max_single, in_axes=(0, 0, None))(sim_matrix, lens,t)
-            return soft_aln,sim_matrix,0 ###TO DO: FIND A SCORE FOR THE SOFTMAX
+            return soft_aln,sim_matrix,0,(h_V1_,h_V2_) ###TO DO: FIND A SCORE FOR THE SOFTMAX
         else:
             if self.affine:
                 scores,soft_aln  = self.my_sw_func(sim_matrix, lens, popen[0],gap[0],t)
             else:
                 scores,soft_aln  = self.my_sw_func(sim_matrix, lens, gap[0],t)
             soft_aln2 = vmap(soft_max_single, in_axes=(0, 0, None))(sim_matrix, lens,t)
-            return soft_aln,soft_aln2,sim_matrix,scores
+            return soft_aln,soft_aln2,sim_matrix,scores,(h_V1_,h_V2_)
     
 
 
