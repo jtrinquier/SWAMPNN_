@@ -185,49 +185,49 @@ class END_TO_END_SEQ_KMEANS_CONVO:
         self.soft_max = soft_max
         self.mixture = mixture
 
-def __call__(self, x1, x2, lens, t):
-    X1, mask1, res1, ch1 = x1
-    X2, mask2, res2, ch2 = x2
-    h_V1 = self.MPNN(X1, mask1, res1, ch1)
-    h_V2 = self.MPNN(X2, mask2, res2, ch2)
-    gap = hk.get_parameter("gap", shape=[1], init=hk.initializers.RandomNormal(0.1, -1))
-    if self.affine:
-        popen = hk.get_parameter("open", shape=[1], init=hk.initializers.RandomNormal(0.1, -3))
-    C = hk.get_parameter("centers", shape=[self.siz, self.nb_clusters], init=hk.initializers.RandomNormal(1, 0))
-
-    temp1 = jnp.einsum("nia,aj->nij", h_V1, C)
-    temp2 = jnp.einsum("nia,aj->nij", h_V2, C)
-
-    h_V1_ = jax.lax.stop_gradient(jax.nn.one_hot(temp1.argmax(-1), self.nb_clusters) - jax.nn.softmax(t**-1 * temp1)) + jax.nn.softmax(t**-1 * temp1)
-    h_V2_ = jax.lax.stop_gradient(jax.nn.one_hot(temp2.argmax(-1), self.nb_clusters) - jax.nn.softmax(t**-1 * temp2)) + jax.nn.softmax(t**-1 * temp2)
-
-    h_V1 = jnp.einsum("nia,ja->nij", h_V1_, C)
-    h_V2 = jnp.einsum("nia,ja->nij", h_V2_, C)
-
-    sim_matrix = jnp.einsum("nia,nja->nij", h_V1, h_V2)
-
-
-    if self.soft_max == False:
+    def __call__(self, x1, x2, lens, t):
+        X1, mask1, res1, ch1 = x1
+        X2, mask2, res2, ch2 = x2
+        h_V1 = self.MPNN(X1, mask1, res1, ch1)
+        h_V2 = self.MPNN(X2, mask2, res2, ch2)
+        gap = hk.get_parameter("gap", shape=[1], init=hk.initializers.RandomNormal(0.1, -1))
         if self.affine:
-            scores,soft_aln  = self.my_sw_func(sim_matrix, lens, popen[0],gap[0],t)
-        else:
-            scores,soft_aln  = self.my_sw_func(sim_matrix, lens, gap[0],t)
-        return soft_aln,sim_matrix,scores,(h_V1_,h_V2_)
-    
-    else:
-        sim_matrix_conv =   sim_matrix[:,:,:,None]
-        # Apply convolutional layers
-        for conv_layer in self.conv_layers:
-            sim_matrix_conv = conv_layer(sim_matrix_conv)
-            sim_matrix_conv = jax.nn.relu(sim_matrix_conv)
-        sim_matrix_conv = self.conv_last_layer(sim_matrix_conv)
-        if self.mixture == False:
-            soft_aln = vmap(soft_max_single, in_axes=(0, 0, None))(sim_matrix_conv[:,:,:,0], lens,t)
-            return soft_aln,sim_matrix,0,(h_V1_,h_V2_) ###TO DO: FIND A SCORE FOR THE SOFTMAX
-        else:
+            popen = hk.get_parameter("open", shape=[1], init=hk.initializers.RandomNormal(0.1, -3))
+        C = hk.get_parameter("centers", shape=[self.siz, self.nb_clusters], init=hk.initializers.RandomNormal(1, 0))
+
+        temp1 = jnp.einsum("nia,aj->nij", h_V1, C)
+        temp2 = jnp.einsum("nia,aj->nij", h_V2, C)
+
+        h_V1_ = jax.lax.stop_gradient(jax.nn.one_hot(temp1.argmax(-1), self.nb_clusters) - jax.nn.softmax(t**-1 * temp1)) + jax.nn.softmax(t**-1 * temp1)
+        h_V2_ = jax.lax.stop_gradient(jax.nn.one_hot(temp2.argmax(-1), self.nb_clusters) - jax.nn.softmax(t**-1 * temp2)) + jax.nn.softmax(t**-1 * temp2)
+
+        h_V1 = jnp.einsum("nia,ja->nij", h_V1_, C)
+        h_V2 = jnp.einsum("nia,ja->nij", h_V2_, C)
+
+        sim_matrix = jnp.einsum("nia,nja->nij", h_V1, h_V2)
+
+
+        if self.soft_max == False:
             if self.affine:
                 scores,soft_aln  = self.my_sw_func(sim_matrix, lens, popen[0],gap[0],t)
             else:
                 scores,soft_aln  = self.my_sw_func(sim_matrix, lens, gap[0],t)
-            soft_aln2 = vmap(soft_max_single, in_axes=(0, 0, None))(sim_matrix_conv[:,:,:,0], lens,t)
-            return soft_aln,soft_aln2,sim_matrix,scores,(h_V1_,h_V2_)
+            return soft_aln,sim_matrix,scores,(h_V1_,h_V2_)
+        
+        else:
+            sim_matrix_conv =   sim_matrix[:,:,:,None]
+            # Apply convolutional layers
+            for conv_layer in self.conv_layers:
+                sim_matrix_conv = conv_layer(sim_matrix_conv)
+                sim_matrix_conv = jax.nn.relu(sim_matrix_conv)
+            sim_matrix_conv = self.conv_last_layer(sim_matrix_conv)
+            if self.mixture == False:
+                soft_aln = vmap(soft_max_single, in_axes=(0, 0, None))(sim_matrix_conv[:,:,:,0], lens,t)
+                return soft_aln,sim_matrix,0,(h_V1_,h_V2_) ###TO DO: FIND A SCORE FOR THE SOFTMAX
+            else:
+                if self.affine:
+                    scores,soft_aln  = self.my_sw_func(sim_matrix, lens, popen[0],gap[0],t)
+                else:
+                    scores,soft_aln  = self.my_sw_func(sim_matrix, lens, gap[0],t)
+                soft_aln2 = vmap(soft_max_single, in_axes=(0, 0, None))(sim_matrix_conv[:,:,:,0], lens,t)
+                return soft_aln,soft_aln2,sim_matrix,scores,(h_V1_,h_V2_)
