@@ -164,7 +164,7 @@ class END_TO_END_SEQ_KMEANS_CONVO:
                 num_encoder_layers=1, k_neighbors=64, augment_eps=0.05,
                 dropout=0., affine=False, nb_clusters=20, soft_max=False,
                 mixture=False, num_conv_layers=5):
-        super(END_TO_END_SEQ_KMEANS, self).__init__()
+        super(END_TO_END_SEQ_KMEANS_CONVO, self).__init__()
 
         self.MPNN = MPNN.ENC(node_features, edge_features, hidden_dim,
                             num_encoder_layers, k_neighbors, augment_eps, dropout)
