@@ -148,7 +148,7 @@ def soft_max_single(sim_matrix, lens, t):
         jax.nn.softmax(t**-1*masked_sim_matrix, axis=-1) *
         jax.nn.softmax(t**-1*masked_sim_matrix, axis=-2)
     )
-    return  soft_aln
+    return  jnp.where(mask, soft_aln, 0)
 
 
 
